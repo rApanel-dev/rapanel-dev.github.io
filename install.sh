@@ -5,7 +5,7 @@
 # Optimizado para Ubuntu 24.04 LTS
 #
 # Uso:
-#   curl -fsSL https://raw.githubusercontent.com/KhrizPlayCL/rapanel/main/install.sh | sudo bash
+#   curl -fsSL https://rapanel-dev.github.io/install.sh | sudo bash
 # =========================================================================
 
 # Colores
@@ -102,7 +102,7 @@ clone_and_setup() {
     cd "$install_dir"
 
     echo -e "${Cyan}Clonando rApanel desde GitHub...${White}"
-    git clone https://github.com/KhrizPlayCL/rapanel.git .
+    git clone https://github.com/rapanel-dev/rapanel.git .
     git config --global --add safe.directory "$install_dir"
     git config core.fileMode false
 
