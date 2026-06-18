@@ -5,7 +5,7 @@
 # Optimizado para Ubuntu 24.04 LTS
 #
 # Uso:
-#   curl -fsSL https://rapanel-dev.github.io/install.sh | sudo bash
+#   curl -o ~/install.sh https://rapanel-dev.github.io/install.sh && chmod +x ~/install.sh && sudo ~/install.sh
 # =========================================================================
 
 # Colores
