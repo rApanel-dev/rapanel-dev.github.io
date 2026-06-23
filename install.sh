@@ -112,6 +112,9 @@ clone_and_setup() {
 
     # Aplicación
     sed -i "s#APP_URL=.*#APP_URL=http://$domain_name#" .env
+    # APP_NAME alimenta el título de la pestaña: VITE_APP_NAME="\${APP_NAME}" se
+    # hornea en npm run build, y config('app.name') se usa en el SSR.
+    sed -i "s#APP_NAME=.*#APP_NAME=\"$app_name\"#" .env
     sed -i "s#RA_SERVER_NAME=.*#RA_SERVER_NAME=\"$server_name\"#" .env
     sed -i "s#APP_LOCALE=.*#APP_LOCALE=$app_locale#" .env
     sed -i "s#RA_GAME_MODE=.*#RA_GAME_MODE=$game_mode#" .env
@@ -206,7 +209,7 @@ collect_config() {
 
     # Directorio de instalación (solo el nombre de carpeta bajo /var/www)
     while true; do
-        read -rp "[1/9] Nombre del directorio de instalación (default: rapanel): " install_name
+        read -rp "[1/10] Nombre del directorio de instalación (default: rapanel): " install_name
         install_name="${install_name:-rapanel}"
         if [[ "$install_name" =~ ^[A-Za-z0-9._-]+$ ]]; then
             break
@@ -217,14 +220,18 @@ collect_config() {
     app_slug="$install_name"
 
     # Dominio
-    read -rp "[2/9] Dominio (sin http:// ni www, ej: mi-server.com): " domain_name
+    read -rp "[2/10] Dominio (sin http:// ni www, ej: mi-server.com): " domain_name
 
     # Nombre del servidor
-    read -rp "[3/9] Nombre del servidor RO (ej: Mi Servidor RO): " server_name
-    server_name="${server_name:-Mi Servidor RO}"
+    read -rp "[3/10] Nombre del servidor RO (completo, ej: Ragnarok Online Master Panel): " server_name
+    server_name="${server_name:-Ragnarok Online Master Panel}"
+
+    # Nombre corto para la pestaña/título del navegador (APP_NAME / VITE_APP_NAME)
+    read -rp "[4/10] Nombre corto para la pestaña del navegador (ej: rApanel, Enter = usar el del servidor): " app_name
+    app_name="${app_name:-$server_name}"
 
     # Modo de juego
-    echo "[4/9] Modo de juego:"
+    echo "[5/10] Modo de juego:"
     echo "      1. renewal (por defecto)"
     echo "      2. pre-renewal"
     read -rp "      Selecciona [1-2]: " game_mode_sel
@@ -235,23 +242,29 @@ collect_config() {
     fi
 
     # Idioma
-    echo "[5/9] Idioma por defecto:"
-    echo "      1. es — Español (por defecto)"
-    echo "      2. en — English"
-    echo "      3. pt — Português"
-    echo "      4. fr — Français"
-    read -rp "      Selecciona [1-4]: " locale_sel
+    echo "[6/10] Idioma por defecto:"
+    echo "      1. es    — Español (por defecto)"
+    echo "      2. en    — English"
+    echo "      3. pt    — Português"
+    echo "      4. pt-BR — Português (Brasil)"
+    echo "      5. fr    — Français"
+    echo "      6. de    — Deutsch"
+    echo "      7. ru    — Русский"
+    read -rp "      Selecciona [1-7]: " locale_sel
     case "$locale_sel" in
         2) app_locale="en" ;;
         3) app_locale="pt" ;;
-        4) app_locale="fr" ;;
+        4) app_locale="pt-BR" ;;
+        5) app_locale="fr" ;;
+        6) app_locale="de" ;;
+        7) app_locale="ru" ;;
         *) app_locale="es" ;;
     esac
 
     # Base de datos rAthena
     echo ""
     echo "--- BASE DE DATOS rAthena (main) ---"
-    read -rp "[6/9] Host BD (default: 127.0.0.1): " db_host
+    read -rp "[7/10] Host BD (default: 127.0.0.1): " db_host
     db_host="${db_host:-127.0.0.1}"
     read -rp "      Puerto BD (default: 3306): " db_port
     db_port="${db_port:-3306}"
@@ -263,7 +276,7 @@ collect_config() {
     # Base de datos de logs
     echo ""
     echo "--- BASE DE DATOS rAthena (logs) ---"
-    read -rp "[7/9] ¿Usar la misma BD para logs? (s/n, default: s): " same_logs
+    read -rp "[8/10] ¿Usar la misma BD para logs? (s/n, default: s): " same_logs
     if [[ "$same_logs" == "n" || "$same_logs" == "N" ]]; then
         read -rp "      Host logs (default: $db_host): " log_db_host
         log_db_host="${log_db_host:-$db_host}"
@@ -284,7 +297,7 @@ collect_config() {
     # Base de datos web
     echo ""
     echo "--- BASE DE DATOS rAthena (web) ---"
-    read -rp "[8/9] ¿Usar la misma BD para web? (s/n, default: s): " same_web
+    read -rp "[9/10] ¿Usar la misma BD para web? (s/n, default: s): " same_web
     if [[ "$same_web" == "n" || "$same_web" == "N" ]]; then
         read -rp "      Host web (default: $db_host): " web_db_host
         web_db_host="${web_db_host:-$db_host}"
@@ -304,7 +317,7 @@ collect_config() {
 
     # IP del servidor rAthena (para estado online)
     echo ""
-    read -rp "[9/9] IP del servidor rAthena para estado online (default: 127.0.0.1): " ra_server_ip
+    read -rp "[10/10] IP del servidor rAthena para estado online (default: 127.0.0.1): " ra_server_ip
     ra_server_ip="${ra_server_ip:-127.0.0.1}"
 }
 
