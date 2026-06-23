@@ -15,7 +15,10 @@ Cyan='\033[0;36m'
 White='\033[0m'
 
 php_version="php8.4"
-install_dir="/var/www/rapanel"
+# El script vive dentro de su propia instalación: deriva la ruta y el slug automáticamente,
+# así funciona sin importar el nombre del directorio elegido al instalar.
+install_dir="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+app_slug="$(basename "$install_dir")"
 
 # 1. Validar usuario root
 if [ "$(id -u)" -ne 0 ]; then
@@ -71,7 +74,7 @@ chown -R www-data:www-data "$install_dir"/
 chmod -R 775 storage bootstrap/cache/
 
 # 10. Reiniciar workers y PHP-FPM para cargar el nuevo código
-supervisorctl restart rapanel-worker:* || true
+supervisorctl restart ${app_slug}-worker:* || true
 systemctl reload "$php_version-fpm" || true
 
 # 11. Optimizar y salir del modo mantenimiento
