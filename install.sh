@@ -18,6 +18,7 @@ White='\033[0m'
 nodejs_version=22
 php_version=php8.4
 install_dir="/var/www/rapanel"
+app_slug="rapanel"
 
 clear
 
@@ -164,8 +165,8 @@ clone_and_setup() {
 
 configure_supervisor() {
     echo -e "${Cyan}Configurando Supervisor para colas...${White}"
-    cat > /etc/supervisor/conf.d/rapanel-worker.conf << EOF
-[program:rapanel-worker]
+    cat > /etc/supervisor/conf.d/${app_slug}-worker.conf << EOF
+[program:${app_slug}-worker]
 process_name=%(program_name)s_%(process_num)02d
 command=$php_version $install_dir/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 autostart=true
@@ -179,7 +180,7 @@ stopwaitsecs=3660
 EOF
     supervisorctl reread
     supervisorctl update
-    supervisorctl start rapanel-worker:* || true
+    supervisorctl start ${app_slug}-worker:* || true
 }
 
 add_cron_job() {
@@ -196,15 +197,27 @@ collect_config() {
     echo " CONFIGURACIÓN DE RAPANEL"
     echo "=========================================="
 
+    # Directorio de instalación (solo el nombre de carpeta bajo /var/www)
+    while true; do
+        read -rp "[1/9] Nombre del directorio de instalación (default: rapanel): " install_name
+        install_name="${install_name:-rapanel}"
+        if [[ "$install_name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            break
+        fi
+        echo -e "${Red}Nombre inválido. Usa solo letras, números, '.', '_' o '-' (sin '/' ni espacios).${White}"
+    done
+    install_dir="/var/www/$install_name"
+    app_slug="$install_name"
+
     # Dominio
-    read -rp "[1/7] Dominio (sin http:// ni www, ej: mi-server.com): " domain_name
+    read -rp "[2/9] Dominio (sin http:// ni www, ej: mi-server.com): " domain_name
 
     # Nombre del servidor
-    read -rp "[2/7] Nombre del servidor RO (ej: Mi Servidor RO): " server_name
+    read -rp "[3/9] Nombre del servidor RO (ej: Mi Servidor RO): " server_name
     server_name="${server_name:-Mi Servidor RO}"
 
     # Modo de juego
-    echo "[3/7] Modo de juego:"
+    echo "[4/9] Modo de juego:"
     echo "      1. renewal (por defecto)"
     echo "      2. pre-renewal"
     read -rp "      Selecciona [1-2]: " game_mode_sel
@@ -215,7 +228,7 @@ collect_config() {
     fi
 
     # Idioma
-    echo "[4/7] Idioma por defecto:"
+    echo "[5/9] Idioma por defecto:"
     echo "      1. es — Español (por defecto)"
     echo "      2. en — English"
     echo "      3. pt — Português"
@@ -231,7 +244,7 @@ collect_config() {
     # Base de datos rAthena
     echo ""
     echo "--- BASE DE DATOS rAthena (main) ---"
-    read -rp "[5/7] Host BD (default: 127.0.0.1): " db_host
+    read -rp "[6/9] Host BD (default: 127.0.0.1): " db_host
     db_host="${db_host:-127.0.0.1}"
     read -rp "      Puerto BD (default: 3306): " db_port
     db_port="${db_port:-3306}"
@@ -243,7 +256,7 @@ collect_config() {
     # Base de datos de logs
     echo ""
     echo "--- BASE DE DATOS rAthena (logs) ---"
-    read -rp "[6/8] ¿Usar la misma BD para logs? (s/n, default: s): " same_logs
+    read -rp "[7/9] ¿Usar la misma BD para logs? (s/n, default: s): " same_logs
     if [[ "$same_logs" == "n" || "$same_logs" == "N" ]]; then
         read -rp "      Host logs (default: $db_host): " log_db_host
         log_db_host="${log_db_host:-$db_host}"
@@ -264,7 +277,7 @@ collect_config() {
     # Base de datos web
     echo ""
     echo "--- BASE DE DATOS rAthena (web) ---"
-    read -rp "[7/8] ¿Usar la misma BD para web? (s/n, default: s): " same_web
+    read -rp "[8/9] ¿Usar la misma BD para web? (s/n, default: s): " same_web
     if [[ "$same_web" == "n" || "$same_web" == "N" ]]; then
         read -rp "      Host web (default: $db_host): " web_db_host
         web_db_host="${web_db_host:-$db_host}"
@@ -284,7 +297,7 @@ collect_config() {
 
     # IP del servidor rAthena (para estado online)
     echo ""
-    read -rp "[8/8] IP del servidor rAthena para estado online (default: 127.0.0.1): " ra_server_ip
+    read -rp "[9/9] IP del servidor rAthena para estado online (default: 127.0.0.1): " ra_server_ip
     ra_server_ip="${ra_server_ip:-127.0.0.1}"
 }
 
@@ -347,7 +360,7 @@ nginx_install() {
 
     setup_nginx_config() {
         echo -e "${Cyan}Configurando Nginx para rApanel...${White}"
-        cat > /etc/nginx/sites-available/rapanel.conf << EOF
+        cat > /etc/nginx/sites-available/${app_slug}.conf << EOF
 server {
     listen 80;
     listen [::]:80;
@@ -384,7 +397,7 @@ server {
     }
 }
 EOF
-        ln -sf /etc/nginx/sites-available/rapanel.conf /etc/nginx/sites-enabled/
+        ln -sf /etc/nginx/sites-available/${app_slug}.conf /etc/nginx/sites-enabled/
         rm -f /etc/nginx/sites-enabled/default
         systemctl reload nginx
     }
@@ -424,7 +437,7 @@ apache2_install() {
 
     setup_apache_config() {
         echo -e "${Cyan}Configurando Apache2 para rApanel...${White}"
-        cat > /etc/apache2/sites-available/rapanel.conf << EOF
+        cat > /etc/apache2/sites-available/${app_slug}.conf << EOF
 <VirtualHost *:80>
     ServerName $domain_name
     ServerAlias www.$domain_name
@@ -439,7 +452,7 @@ apache2_install() {
 </VirtualHost>
 EOF
         a2enmod rewrite
-        a2ensite rapanel.conf
+        a2ensite ${app_slug}.conf
         a2dissite 000-default.conf 2>/dev/null || true
         systemctl restart apache2
     }
