@@ -184,7 +184,14 @@ EOF
 }
 
 add_cron_job() {
-    (crontab -l 2>/dev/null; echo "* * * * * $php_version $install_dir/artisan schedule:run >> /dev/null 2>&1") | crontab -
+    # El scheduler debe correr como www-data (NO root): si corre como root crea
+    # archivos root-owned en storage/ (ej. storage/logs/laravel.log) que luego
+    # PHP-FPM (www-data) no puede escribir → errores 500. Usamos un drop-in en
+    # /etc/cron.d con el campo de usuario en vez del crontab de root.
+    cat > /etc/cron.d/${app_slug}-scheduler << EOF
+* * * * * www-data $php_version $install_dir/artisan schedule:run >> /dev/null 2>&1
+EOF
+    chmod 644 /etc/cron.d/${app_slug}-scheduler
 }
 
 # =========================================================================
