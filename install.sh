@@ -401,6 +401,15 @@ server {
         try_files \$uri =404;
     }
 
+    # Parches del cliente RO: archivos físicos públicos (los baja el patcher directo)
+    location ^~ /downloads/patch/ {}
+
+    # Página /downloads (gestionada desde el panel admin) → Laravel; evita el 403
+    # por colisión con la carpeta física public/downloads/
+    location /downloads {
+        rewrite ^ /index.php last;
+    }
+
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { access_log off; log_not_found off; }
 
